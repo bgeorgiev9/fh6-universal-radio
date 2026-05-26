@@ -141,6 +141,7 @@ struct YouTubeMusicSource::Pipe {
     HANDLE title_pipe = nullptr;
     std::string title_buf;
     std::uint64_t bytes_written = 0;
+    bool ended = false;
 
     ~Pipe() {
         // Close pipes first so any blocked ReadFile in the children unblocks
@@ -438,7 +439,7 @@ void YouTubeMusicSource::pump(RingBuffer& ring) {
 
     std::scoped_lock lk{mu_};
     Pipe* p = pipe_.get();
-    if (!p || !p->read_pipe) return;
+    if (!p) return;
 
     // ---- Title resolver drain & parse ----
     // The earlier version only parsed when the child had exited AND tavail==0
@@ -490,19 +491,7 @@ void YouTubeMusicSource::pump(RingBuffer& ring) {
     }
 
     // ---- PCM drain ----
-    auto on_eof = [&] {
-        // Track finished (or yt-dlp errored out). In a multi-item queue, walk
-        // forward; otherwise stop. The ring is drained by the HTTP layer on
-        // explicit next/previous, so a self-advance also drops the stale tail.
-        if (p->bytes_written > 0) {
-            consecutive_failed_ = 0;
-        } else if (++consecutive_failed_ >= 3) {
-            // Three tracks in a row produced no PCM -- bad cookies, geo block,
-            // dead URLs. Stop rather than loop the whole queue at full tilt.
-            log::warn("[yt] giving up after {} consecutive empty tracks", consecutive_failed_);
-            stop_pipe_locked();
-            return;
-        }
+    auto advance_to_next = [&] {
         if (queue_.size() > 1) {
             const auto n = static_cast<std::ptrdiff_t>(queue_.size());
             auto i       = static_cast<std::ptrdiff_t>(queue_idx_) + 1;
@@ -511,6 +500,42 @@ void YouTubeMusicSource::pump(RingBuffer& ring) {
             if (pipe_) state_.store(PlaybackState::playing, std::memory_order_release);
         } else {
             stop_pipe_locked();
+        }
+    };
+
+    auto update_position = [&] {
+        const std::size_t r   = ring.readable();
+        const std::uint64_t played =
+            p->bytes_written > r ? p->bytes_written - r : 0;
+        position_ms_.store(played * 1000ull / kPcmBytesPerSec,
+                           std::memory_order_release);
+    };
+
+    if (p->ended) {
+        update_position();
+        if (ring.readable() == 0) advance_to_next();
+        return;
+    }
+
+    if (!p->read_pipe) return;
+
+    auto on_eof = [&] {
+        if (p->bytes_written == 0) {
+            if (++consecutive_failed_ >= 3) {
+                log::warn("[yt] giving up after {} consecutive empty tracks",
+                          consecutive_failed_);
+                stop_pipe_locked();
+                return;
+            }
+            advance_to_next();
+            return;
+        }
+
+        consecutive_failed_ = 0;
+        p->ended            = true;
+        if (p->read_pipe) {
+            CloseHandle(p->read_pipe);
+            p->read_pipe = nullptr;
         }
     };
 
@@ -532,13 +557,15 @@ void YouTubeMusicSource::pump(RingBuffer& ring) {
         }
         ring.write(buf, got);
         p->bytes_written += got;
-        position_ms_.store(p->bytes_written * 1000ull / kPcmBytesPerSec,
-                           std::memory_order_release);
+        update_position();
         avail = avail > got ? avail - got : 0;
         if (state_.load(std::memory_order_acquire) == PlaybackState::buffering &&
             ring.readable() > 32 * 1024)
             state_.store(PlaybackState::playing, std::memory_order_release);
     }
+    // Even when the read loop didn't run (e.g. ring was full), keep position
+    // moving as the mixer drains the ring.
+    update_position();
 }
 
 } // namespace fh6::sources
