@@ -9,9 +9,12 @@
 namespace fh6::fmod_bridge {
 
 struct RadioInstance {
-    std::byte* refcount_obj; // _Ref_count_obj2<RadioStreamFmod> on the heap
-    std::byte* radio_stream; // inline RadioStreamFmod (= refcount_obj + 16)
-    std::string sound_name;  // resolved via +0x48 -> +0x18 -> +0x10 chain
+    std::byte* refcount_obj;       // _Ref_count_obj2<RadioStreamFmod> on the heap
+    std::byte* radio_stream;       // inline RadioStreamFmod (= refcount_obj + 16)
+    std::byte* sample_props_body;  // resolved via +0x48 -> +0x18; holds the
+                                   // std::string slots the game renders on the
+                                   // radio HUD (SoundName/DisplayName/Artist).
+    std::string sound_name;        // sample_props_body + 0x10
 };
 
 struct DiscoveryResult {

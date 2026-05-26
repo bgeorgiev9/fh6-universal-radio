@@ -32,6 +32,7 @@ add_library(version SHARED
     src/fmod/radio_discovery.cpp
     src/fmod/dsp_bridge.cpp
     src/fmod/dsp_control_loop.cpp
+    src/fmod/metadata_injector.cpp
     src/http/http_server.cpp
     src/sources/local_file_source.cpp
     src/sources/youtube_music_source.cpp

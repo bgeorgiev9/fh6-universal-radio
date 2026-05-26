@@ -140,17 +140,24 @@ std::vector<std::byte*> scan_heap(const PEImage& img, const std::byte* vtable) n
 //   +0x48 -> SampleProperties wrapper
 //     +0x18 -> SampleProperties body
 //       +0x10 -> std::string SoundName
+//       +0x30 -> std::string DisplayName  (rendered as the song title)
+//       +0x50 -> std::string Artist
 // `step` reports which link broke first (0/1/2) so the periodic log can
-// say which side of the chain is stuck.
-std::string read_sound_name(std::byte* radio_stream, int* step) noexcept {
+// say which side of the chain is stuck. `out_body` receives the
+// SampleProperties body pointer so the caller can later overwrite the
+// DisplayName/Artist slots.
+std::string read_sound_name(std::byte* radio_stream, int* step,
+                            std::byte** out_body) noexcept {
     std::string out;
     *step        = 0;
+    if (out_body) *out_body = nullptr;
     std::byte* a = nullptr;
     if (!safe_read(radio_stream + 0x48, a) || !a) return {};
     *step        = 1;
     std::byte* b = nullptr;
     if (!safe_read(a + 0x18, b) || !b) return {};
     *step = 2;
+    if (out_body) *out_body = b;
     seh_call([&] {
         auto s = safe_read_msvc_string(b + 0x10);
         if (s) out = std::move(*s);
@@ -261,14 +268,15 @@ DiscoveryResult discover_radio_instances(const PEImage& img) noexcept {
     int step_histogram[3] = {0, 0, 0};
     for (auto* refcount : local.candidates) {
         std::byte* radio_stream = refcount + 16;
+        std::byte* body         = nullptr;
         int step                = 0;
-        auto name               = read_sound_name(radio_stream, &step);
+        auto name               = read_sound_name(radio_stream, &step, &body);
         if (name.empty()) {
             ++step_histogram[step];
             continue;
         }
         result.vtable = local.vtable;
-        result.instances.push_back({refcount, radio_stream, std::move(name)});
+        result.instances.push_back({refcount, radio_stream, body, std::move(name)});
     }
 
     if (result.instances.empty()) {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "fh6/fmod/dsp_bridge.hpp"
+#include "fh6/fmod/metadata_injector.hpp"
 #include "fh6/fmod/pe_image.hpp"
 
 #include <atomic>
@@ -25,10 +26,12 @@ public:
 
 private:
     void run(const std::stop_token& tok);
+    void push_metadata() noexcept;
 
     DSPBridge& bridge_;
     const PEImage& img_;
     std::atomic<float> configured_gain_;
+    MetadataInjector meta_;
     std::jthread thread_;
 };
 
