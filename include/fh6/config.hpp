@@ -47,6 +47,7 @@ struct JellyfinConfig {
     std::string api_key;
     std::string user_id;
     std::string default_playlist;
+    bool use_favorites = false;
     bool shuffle = true;
 };
 

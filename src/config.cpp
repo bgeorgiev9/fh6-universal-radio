@@ -84,6 +84,7 @@ Config load_config(const std::filesystem::path& path) {
     cfg.jellyfin.api_key = pick<std::string>(jf, "api_key", cfg.jellyfin.api_key);
     cfg.jellyfin.user_id = pick<std::string>(jf, "user_id", cfg.jellyfin.user_id);
     cfg.jellyfin.default_playlist = pick<std::string>(jf, "default_playlist", cfg.jellyfin.default_playlist);
+    cfg.jellyfin.use_favorites = pick<bool>(jf, "use_favorites", cfg.jellyfin.use_favorites);
     cfg.jellyfin.shuffle = pick<bool>(jf, "shuffle", cfg.jellyfin.shuffle);
 
     const auto& au = section(root, "audio");
@@ -235,6 +236,7 @@ void save_config(const std::filesystem::path& path, const Config& cfg) {
     e.kv("api_key", cfg.jellyfin.api_key);
     e.kv("user_id", cfg.jellyfin.user_id);
     e.kv("default_playlist", cfg.jellyfin.default_playlist);
+    e.kv("use_favorites", cfg.jellyfin.use_favorites);
     e.kv("shuffle", cfg.jellyfin.shuffle);
 
     e.header("audio");

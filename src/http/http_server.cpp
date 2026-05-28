@@ -132,6 +132,7 @@ json config_to_json(const Config& c) {
              {"api_key", c.jellyfin.api_key},
              {"user_id", c.jellyfin.user_id},
              {"default_playlist", c.jellyfin.default_playlist},
+             {"use_favorites", c.jellyfin.use_favorites},
              {"shuffle", c.jellyfin.shuffle},
          }},
         {"audio",
@@ -193,6 +194,7 @@ void apply_patch(Config& c, const json& j) {
         c.jellyfin.api_key          = pull(*it, "api_key", c.jellyfin.api_key);
         c.jellyfin.user_id          = pull(*it, "user_id", c.jellyfin.user_id);
         c.jellyfin.default_playlist = pull(*it, "default_playlist", c.jellyfin.default_playlist);
+        c.jellyfin.use_favorites    = pull(*it, "use_favorites", c.jellyfin.use_favorites);
         c.jellyfin.shuffle          = pull(*it, "shuffle", c.jellyfin.shuffle);
     }
     if (auto it = j.find("audio"); it != j.end()) {

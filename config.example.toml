@@ -33,6 +33,7 @@ server_url         = ''                # e.g. 'http://127.0.0.1:8096'
 api_key            = ''                # generate this in the Jellyfin dashboard
 user_id            = ''                # the ID of the user to track playback against
 default_playlist   = ''                # jellyfin playlist ID goes here
+use_favorites      = false             # set to true to play your favorites instead of a playlist
 shuffle            = true              # true or false
 
 [audio]
