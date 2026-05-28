@@ -154,7 +154,7 @@ the README on the repo has GitHub Sponsors and Ko-fi links.
 
 Unofficial fan project. Nothing here is affiliated with, endorsed by, or
 connected to Turn 10 Studios, Playground Games, Xbox Game Studios,
-Microsoft, Google, or YouTube. Forza Horizon, Forza Motorsport, and all
+Microsoft, Google, YouTube, or Jellyfin (Jellyfin LLC). Forza Horizon, Forza Motorsport, and all
 other names dropped above belong to their respective owners. Provided
 as-is, no warranty, use at your own risk.
 '@
