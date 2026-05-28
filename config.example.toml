@@ -10,6 +10,7 @@ port              = 8420
 ring_buffer_mb    = 4
 default_source    = "local_files"     # local_files | youtube_music
 fallback_source   = "local_files"
+ffmpeg_path       = ''                # blank = `ffmpeg` on PATH; shared by all sources
 
 [local_files]
 enabled            = true
@@ -23,7 +24,6 @@ supported_formats  = ["mp3", "flac", "wav", "ogg", "m4a", "opus", "aac", "wma", 
 enabled            = false
 cookies_path       = ''                # optional Netscape cookies.txt
 yt_dlp_path        = ''                # blank = `yt-dlp` on PATH
-ffmpeg_path        = ''                # blank = `ffmpeg`  on PATH
 default_playlist   = ""
 shuffle            = true
 
@@ -33,7 +33,6 @@ server_url         = ''                # e.g. 'http://127.0.0.1:8096'
 api_key            = ''                # generate this in the Jellyfin dashboard
 user_id            = ''                # the ID of the user to track playback against
 default_playlist   = ''                # jellyfin playlist ID goes here
-ffmpeg_path        = ''                # blank = `ffmpeg` on PATH
 shuffle            = true              # true or false
 
 [audio]

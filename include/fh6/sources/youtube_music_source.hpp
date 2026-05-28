@@ -20,7 +20,7 @@ namespace fh6::sources {
 // item list up front (via --flat-playlist) so next() / previous() can walk it.
 class YouTubeMusicSource final : public IAudioSource {
 public:
-    explicit YouTubeMusicSource(YouTubeMusicConfig cfg);
+    YouTubeMusicSource(YouTubeMusicConfig cfg, std::filesystem::path ffmpeg_path);
     ~YouTubeMusicSource() override;
 
     std::string_view name() const noexcept override { return "youtube_music"; }
@@ -42,6 +42,7 @@ public:
     void set_target(std::string url);
 
     void set_shuffle(bool shuffle);
+    void set_ffmpeg_path(std::filesystem::path p);
     void set_playback_options(const PlaybackConfig& opts) override;
 
     TrackInfo current_track() const override;
@@ -62,6 +63,7 @@ private:
     void resolve_queue_locked();// mu_ held; populates queue_ from target_url_
 
     YouTubeMusicConfig cfg_;
+    std::filesystem::path ffmpeg_path_;
     std::unique_ptr<Pipe> pipe_;
 
     mutable std::mutex mu_;

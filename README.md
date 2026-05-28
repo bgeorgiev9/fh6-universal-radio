@@ -67,7 +67,7 @@ Requires **Visual Studio 2022+** with the *Desktop development with C++* workloa
 | New radio station doesn't show in-game | **Audio > Streamer Mode** is off. Turn it on, restart the game. |
 | Game crashes on launch | Antivirus quarantined `version.dll`. Add an exclusion for the game folder. |
 | Local files don't play | No `music_dir` set, or the folder only has unsupported formats. Set one from the dashboard. |
-| `[local] failed to open ... .m4a` (or `.opus`, `.aac`, ...) | The built-in decoder handles MP3/FLAC/WAV/OGG only; other formats are routed through `ffmpeg`. Install it (`winget install Gyan.FFmpeg`) and either put it on `PATH` or set the path under **Settings > YouTube Music > ffmpeg_path**. |
+| `[local] failed to open ... .m4a` (or `.opus`, `.aac`, ...) | The built-in decoder handles MP3/FLAC/WAV/OGG only; other formats are routed through `ffmpeg`. Install it (`winget install Gyan.FFmpeg`) and either put it on `PATH` or set the path under **Settings > General > ffmpeg path**. |
 | YouTube Music produces no audio | Check `%TEMP%\fh6-stderr.log` (helper-process stderr lands there). Usually missing yt-dlp/ffmpeg, expired cookies, or geo/format restrictions. |
 
 ## Why this exists

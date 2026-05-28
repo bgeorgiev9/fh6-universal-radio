@@ -108,6 +108,7 @@ json config_to_json(const Config& c) {
              {"ring_buffer_mb", c.general.ring_buffer_mb},
              {"default_source", c.general.default_source},
              {"fallback_source", c.general.fallback_source},
+             {"ffmpeg_path", path_s(c.general.ffmpeg_path)},
          }},
         {"local_files",
          json{
@@ -122,7 +123,6 @@ json config_to_json(const Config& c) {
              {"enabled", c.youtube_music.enabled},
              {"cookies_path", path_s(c.youtube_music.cookies_path)},
              {"yt_dlp_path", path_s(c.youtube_music.yt_dlp_path)},
-             {"ffmpeg_path", path_s(c.youtube_music.ffmpeg_path)},
              {"default_playlist", c.youtube_music.default_playlist},
              {"shuffle", c.youtube_music.shuffle},
          }},
@@ -133,7 +133,6 @@ json config_to_json(const Config& c) {
              {"api_key", c.jellyfin.api_key},
              {"user_id", c.jellyfin.user_id},
              {"default_playlist", c.jellyfin.default_playlist},
-             {"ffmpeg_path", c.jellyfin.ffmpeg_path},
              {"shuffle", c.jellyfin.shuffle},
          }},
         {"audio",
@@ -170,6 +169,7 @@ void apply_patch(Config& c, const json& j) {
         c.general.ring_buffer_mb  = pull(*it, "ring_buffer_mb", c.general.ring_buffer_mb);
         c.general.default_source  = pull(*it, "default_source", c.general.default_source);
         c.general.fallback_source = pull(*it, "fallback_source", c.general.fallback_source);
+        c.general.ffmpeg_path     = pull_path(*it, "ffmpeg_path", c.general.ffmpeg_path);
     }
     if (auto it = j.find("local_files"); it != j.end()) {
         c.local_files.enabled   = pull(*it, "enabled", c.local_files.enabled);
@@ -183,7 +183,6 @@ void apply_patch(Config& c, const json& j) {
         c.youtube_music.enabled      = pull(*it, "enabled", c.youtube_music.enabled);
         c.youtube_music.cookies_path = pull_path(*it, "cookies_path", c.youtube_music.cookies_path);
         c.youtube_music.yt_dlp_path  = pull_path(*it, "yt_dlp_path", c.youtube_music.yt_dlp_path);
-        c.youtube_music.ffmpeg_path  = pull_path(*it, "ffmpeg_path", c.youtube_music.ffmpeg_path);
         c.youtube_music.default_playlist =
             pull(*it, "default_playlist", c.youtube_music.default_playlist);
         c.youtube_music.shuffle = pull(*it, "shuffle", c.youtube_music.shuffle);
@@ -194,7 +193,6 @@ void apply_patch(Config& c, const json& j) {
         c.jellyfin.api_key          = pull(*it, "api_key", c.jellyfin.api_key);
         c.jellyfin.user_id          = pull(*it, "user_id", c.jellyfin.user_id);
         c.jellyfin.default_playlist = pull(*it, "default_playlist", c.jellyfin.default_playlist);
-        c.jellyfin.ffmpeg_path      = pull(*it, "ffmpeg_path", c.jellyfin.ffmpeg_path);
         c.jellyfin.shuffle          = pull(*it, "shuffle", c.jellyfin.shuffle);
     }
     if (auto it = j.find("audio"); it != j.end()) {

@@ -108,19 +108,20 @@ void run_bridge(HMODULE self) noexcept {
     auto sync_sources = [&mgr](const Config& c) {
         if (c.local_files.enabled && !mgr.find("local_files")) {
             auto src = std::make_unique<sources::LocalFileSource>(c.local_files,
-                                                                  c.youtube_music.ffmpeg_path);
+                                                                  c.general.ffmpeg_path);
             if (src->initialize()) mgr.register_source(std::move(src));
         } else if (!c.local_files.enabled && mgr.find("local_files")) {
             mgr.unregister_source("local_files");
         }
         if (c.youtube_music.enabled && !mgr.find("youtube_music")) {
-            auto src = std::make_unique<sources::YouTubeMusicSource>(c.youtube_music);
+            auto src = std::make_unique<sources::YouTubeMusicSource>(c.youtube_music,
+                                                                     c.general.ffmpeg_path);
             if (src->initialize()) mgr.register_source(std::move(src));
         } else if (!c.youtube_music.enabled && mgr.find("youtube_music")) {
             mgr.unregister_source("youtube_music");
         }
         if (c.jellyfin.enabled && !mgr.find("jellyfin")) {
-            auto src = std::make_unique<sources::JellyfinSource>(c.jellyfin);
+            auto src = std::make_unique<sources::JellyfinSource>(c.jellyfin, c.general.ffmpeg_path);
             if (src->initialize()) mgr.register_source(std::move(src));
         } else if (!c.jellyfin.enabled && mgr.find("jellyfin")) {
             mgr.unregister_source("jellyfin");
@@ -155,7 +156,7 @@ void run_bridge(HMODULE self) noexcept {
         if (ctrl_ptr) ctrl_ptr->set_configured_gain(c.audio.output_gain);
         if (auto* local = dynamic_cast<sources::LocalFileSource*>(mgr.find("local_files"))) {
             local->set_shuffle(c.local_files.shuffle);
-            local->set_ffmpeg_path(c.youtube_music.ffmpeg_path);
+            local->set_ffmpeg_path(c.general.ffmpeg_path);
             local->set_directory(c.local_files.music_dir, c.local_files.recursive);
             if (mgr.active() == local && local->track_count() > 0 &&
                 local->playback_state() != PlaybackState::playing) {
@@ -164,9 +165,11 @@ void run_bridge(HMODULE self) noexcept {
         }
         if (auto* yt = dynamic_cast<sources::YouTubeMusicSource*>(mgr.find("youtube_music"))) {
             yt->set_shuffle(c.youtube_music.shuffle);
+            yt->set_ffmpeg_path(c.general.ffmpeg_path);
         }
         if (auto* jf = dynamic_cast<sources::JellyfinSource*>(mgr.find("jellyfin"))) {
             jf->set_config(c.jellyfin);
+            jf->set_ffmpeg_path(c.general.ffmpeg_path);
         }
 
         for (auto* s : mgr.sources_snapshot()) s->set_playback_options(c.playback);

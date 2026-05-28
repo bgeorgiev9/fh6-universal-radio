@@ -73,7 +73,8 @@ struct YouTubeMusicSource::Pipe {
     }
 };
 
-YouTubeMusicSource::YouTubeMusicSource(YouTubeMusicConfig cfg) : cfg_{std::move(cfg)} {}
+YouTubeMusicSource::YouTubeMusicSource(YouTubeMusicConfig cfg, std::filesystem::path ffmpeg_path)
+    : cfg_{std::move(cfg)}, ffmpeg_path_{std::move(ffmpeg_path)} {}
 
 YouTubeMusicSource::~YouTubeMusicSource() { stop_pipe_locked(); }
 
@@ -99,6 +100,11 @@ void YouTubeMusicSource::set_target(std::string url) {
     queue_.clear();
     queue_idx_ = 0;
     queue_built_for_.clear();
+}
+
+void YouTubeMusicSource::set_ffmpeg_path(std::filesystem::path p) {
+    std::scoped_lock lk{mu_};
+    ffmpeg_path_ = std::move(p);
 }
 
 void YouTubeMusicSource::set_shuffle(bool shuffle) {
@@ -251,7 +257,7 @@ void YouTubeMusicSource::start_pipe_locked() {
     HANDLE err_log = open_stderr_log();
 
     const auto yt = cfg_.yt_dlp_path.empty() ? L"yt-dlp" : cfg_.yt_dlp_path.wstring();
-    const auto ff = cfg_.ffmpeg_path.empty() ? L"ffmpeg" : cfg_.ffmpeg_path.wstring();
+    const auto ff = ffmpeg_path_.empty() ? L"ffmpeg" : ffmpeg_path_.wstring();
 
     // `--` terminates options so a URL starting with `-` isn't read as a flag.
     // `--no-playlist` keeps yt-dlp on the single video even if the resolved
@@ -298,7 +304,7 @@ void YouTubeMusicSource::start_pipe_locked() {
     CloseHandle(ff_out_w); ff_out_w = nullptr;
     if (!pipe->proc_ff) {
         log::warn("[yt] failed to launch ffmpeg -- {}",
-                  describe_launch_failure(std::wstring{ff}, ec_ff, !cfg_.ffmpeg_path.empty()));
+                  describe_launch_failure(std::wstring{ff}, ec_ff, !ffmpeg_path_.empty()));
         if (ff_out_r) CloseHandle(ff_out_r);
         if (tl_out_r) CloseHandle(tl_out_r);
         if (tl_out_w) CloseHandle(tl_out_w);

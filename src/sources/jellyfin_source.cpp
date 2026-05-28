@@ -47,8 +47,8 @@ bool config_complete(const JellyfinConfig& c) noexcept {
            !c.user_id.empty() && !c.default_playlist.empty();
 }
 
-// Fields that determine which playlist gets fetched. `shuffle` and
-// `ffmpeg_path` deliberately omitted -- they don't require a re-query.
+// Fields that determine which playlist gets fetched. `shuffle` deliberately
+// omitted -- it doesn't require a re-query.
 bool same_query_target(const JellyfinConfig& a, const JellyfinConfig& b) noexcept {
     return a.server_url == b.server_url && a.api_key == b.api_key &&
            a.user_id    == b.user_id    && a.default_playlist == b.default_playlist;
@@ -194,7 +194,8 @@ struct JellyfinSource::Pipe {
     }
 };
 
-JellyfinSource::JellyfinSource(JellyfinConfig cfg) : cfg_{std::move(cfg)} {}
+JellyfinSource::JellyfinSource(JellyfinConfig cfg, std::filesystem::path ffmpeg_path)
+    : cfg_{std::move(cfg)}, ffmpeg_path_{std::move(ffmpeg_path)} {}
 
 JellyfinSource::~JellyfinSource() {
     std::scoped_lock lk{mu_};
@@ -238,8 +239,8 @@ void JellyfinSource::start_pipe_locked() {
     HANDLE nul_in  = open_nul(GENERIC_READ);
     HANDLE err_log = open_stderr_log();
 
-    const std::wstring ff = cfg_.ffmpeg_path.empty() ? std::wstring{L"ffmpeg"}
-                                                     : widen(cfg_.ffmpeg_path);
+    const std::wstring ff = ffmpeg_path_.empty() ? std::wstring{L"ffmpeg"}
+                                                 : ffmpeg_path_.wstring();
     const std::string stream_url = std::format("{}/Audio/{}/stream?static=true",
                                                 cfg_.server_url, queue_[current_idx_].id);
     // Pass the API key via -headers so it isn't visible on the ffmpeg command
@@ -263,7 +264,7 @@ void JellyfinSource::start_pipe_locked() {
     if (!pipe->proc) {
         CloseHandle(out_r);
         log::warn("[jellyfin] failed to launch ffmpeg -- {}",
-                  describe_launch_failure(ff, ec, !cfg_.ffmpeg_path.empty()));
+                  describe_launch_failure(ff, ec, !ffmpeg_path_.empty()));
         return;  // ~Pipe reaps the job
     }
 
@@ -367,6 +368,11 @@ void JellyfinSource::set_config(JellyfinConfig cfg) {
     } else if (shuffle_flip && cfg_.shuffle) {
         shuffle_range(queue_, current_idx_ + 1);   // preserve the currently-playing track
     }
+}
+
+void JellyfinSource::set_ffmpeg_path(std::filesystem::path p) {
+    std::scoped_lock lk{mu_};
+    ffmpeg_path_ = std::move(p);
 }
 
 void JellyfinSource::set_playback_options(const PlaybackConfig& opts) {

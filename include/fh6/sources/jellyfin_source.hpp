@@ -7,6 +7,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -28,7 +29,7 @@ struct JellyfinTrack {
 // freeze the AudioSourceManager pump loop.
 class JellyfinSource final : public IAudioSource {
 public:
-    explicit JellyfinSource(JellyfinConfig cfg);
+    JellyfinSource(JellyfinConfig cfg, std::filesystem::path ffmpeg_path);
     ~JellyfinSource() override;
 
     std::string_view name() const noexcept override         { return "jellyfin"; }
@@ -47,6 +48,7 @@ public:
     // Settings drawer hot-update; re-fetches when auth/url/playlist fields
     // change, re-shuffles in place when only `shuffle` flips.
     void set_config(JellyfinConfig cfg);
+    void set_ffmpeg_path(std::filesystem::path p);
 
     // POST /api/source/jellyfin/cast: swap to a specific playlist id.
     // Returns false if the fetch fails (queue left untouched).
@@ -71,6 +73,7 @@ private:
     void advance_locked(std::ptrdiff_t step);
 
     JellyfinConfig cfg_;
+    std::filesystem::path ffmpeg_path_;
 
     mutable std::mutex mu_;
     std::vector<JellyfinTrack> queue_;
