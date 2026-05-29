@@ -129,10 +129,12 @@ void run_bridge(HMODULE self) noexcept {
 			  mgr.unregister_source("jellyfin");
 			}
 
-			if (!mgr.find("external_audio")) {
-			  auto src = std::make_unique<sources::ExternalAudioSource>();
-			  if (src->initialize()) mgr.register_source(std::move(src));
-			}
+            if (c.external_audio.enabled && !mgr.find("external_audio")) {
+                auto src = std::make_unique<sources::ExternalAudioSource>();
+                if (src->initialize()) mgr.register_source(std::move(src));
+            } else if (!c.external_audio.enabled && mgr.find("external_audio")) {
+                mgr.unregister_source("external_audio");
+            }
     };
 
     sync_sources(cfg);

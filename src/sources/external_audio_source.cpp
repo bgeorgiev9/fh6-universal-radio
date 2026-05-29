@@ -511,7 +511,13 @@ bool set_external_audio_configured_endpoint(std::string_view endpoint_id_value) 
  std::string line;
  bool in_external = false;
  bool saw_external = false;
+ bool wrote_enabled = false;
  bool wrote_endpoint = false;
+
+ auto write_enabled_default = [&] {
+  out << "enabled = false\n";
+  wrote_enabled = true;
+ };
 
  auto write_endpoint = [&] {
   out << "endpoint_id = " << toml_quote(endpoint_id_value) << "\n";
@@ -526,8 +532,13 @@ bool set_external_audio_configured_endpoint(std::string_view endpoint_id_value) 
   trimmed = first == std::string::npos ? std::string{} : trimmed.substr(first, last - first + 1);
 
   if (trimmed.size() >= 3 && trimmed.front() == '[' && trimmed.back() == ']') {
-   if (in_external && !wrote_endpoint) write_endpoint();
+   if (in_external) {
+    if (!wrote_enabled) write_enabled_default();
+    if (!wrote_endpoint) write_endpoint();
+   }
    in_external = (trimmed == "[external_audio]");
+   wrote_enabled = false;
+   wrote_endpoint = false;
    if (in_external) saw_external = true;
    out << line << "\n";
    continue;
@@ -537,6 +548,9 @@ bool set_external_audio_configured_endpoint(std::string_view endpoint_id_value) 
    auto eq = trimmed.find('=');
    auto key = eq == std::string::npos ? trimmed : trimmed.substr(0, eq);
    key.erase(std::remove_if(key.begin(), key.end(), [](unsigned char c) { return std::isspace(c); }), key.end());
+   if (key == "enabled") {
+    wrote_enabled = true;
+   }
    if (key == "endpoint_id") {
     write_endpoint();
     continue;
@@ -546,10 +560,14 @@ bool set_external_audio_configured_endpoint(std::string_view endpoint_id_value) 
   out << line << "\n";
  }
 
- if (saw_external && in_external && !wrote_endpoint) write_endpoint();
+ if (saw_external && in_external) {
+  if (!wrote_enabled) write_enabled_default();
+  if (!wrote_endpoint) write_endpoint();
+ }
  if (!saw_external) {
   if (!content.empty() && content.back() != '\n') out << "\n";
   out << "\n[external_audio]\n";
+  write_enabled_default();
   write_endpoint();
  }
 

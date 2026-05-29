@@ -135,6 +135,11 @@ json config_to_json(const Config& c) {
              {"default_playlist", c.jellyfin.default_playlist},
              {"shuffle", c.jellyfin.shuffle},
          }},
+        {"external_audio",
+         json{
+             {"enabled", c.external_audio.enabled},
+             {"endpoint_id", c.external_audio.endpoint_id},
+         }},
         {"audio",
          json{
              {"output_gain", c.audio.output_gain},
@@ -195,6 +200,11 @@ void apply_patch(Config& c, const json& j) {
         c.jellyfin.user_id          = pull(*it, "user_id", c.jellyfin.user_id);
         c.jellyfin.default_playlist = pull(*it, "default_playlist", c.jellyfin.default_playlist);
         c.jellyfin.shuffle          = pull(*it, "shuffle", c.jellyfin.shuffle);
+    }
+    if (auto it = j.find("external_audio"); it != j.end()) {
+        c.external_audio.enabled = pull(*it, "enabled", c.external_audio.enabled);
+        c.external_audio.endpoint_id =
+            pull(*it, "endpoint_id", c.external_audio.endpoint_id);
     }
     if (auto it = j.find("audio"); it != j.end()) {
         c.audio.output_gain = pull(*it, "output_gain", c.audio.output_gain);
@@ -501,6 +511,37 @@ struct HttpServer::Impl {
             auto src = json::parse(req.body).at("source").get<std::string>();
             return mgr.switch_to(src) ? ok() : fail(404, "unknown source");
         }
+        if (m == "GET" && p == "/api/external_audio/devices") {
+            json devices = json::array();
+            for (const auto& d : sources::enumerate_external_audio_devices()) {
+                devices.push_back(json{
+                    {"id", d.id},
+                    {"name", d.name},
+                    {"is_default", d.is_default},
+                });
+            }
+            auto snap = store.snapshot();
+            return ok(json{
+                {"enabled", snap.external_audio.enabled},
+                {"endpoint_id", snap.external_audio.endpoint_id},
+                {"devices", devices},
+            });
+        }
+        if (m == "PUT" && p == "/api/external_audio/config") {
+            auto body = req.body.empty() ? json::object() : json::parse(req.body);
+            const auto endpoint = body.value("endpoint_id", std::string{});
+            const auto enabled = body.value("enabled", store.snapshot().external_audio.enabled);
+            store.patch([&](Config& c) {
+                c.external_audio.enabled = enabled;
+                c.external_audio.endpoint_id = endpoint;
+            });
+            if (auto* ext = find_typed<sources::ExternalAudioSource>("external_audio")) {
+                ext->reload_from_config();
+            }
+            auto snap = store.snapshot();
+            return ok(json{{"enabled", snap.external_audio.enabled},
+                           {"endpoint_id", snap.external_audio.endpoint_id}});
+        }
         if (m == "POST" && p == "/api/source/youtube_music/cast") {
             auto* yt = find_typed<sources::YouTubeMusicSource>("youtube_music");
             if (!yt) return fail(404, "youtube_music not registered");
@@ -508,26 +549,6 @@ struct HttpServer::Impl {
             const bool was_active = (mgr.active() == yt);
             yt->set_target(std::move(url));
             yt->stop();
-    if (m == "GET" && p == "/api/external_audio/devices") {
-      json devices = json::array();
-      for (const auto& d : sources::enumerate_external_audio_devices()) {
-        devices.push_back(json{{"id", d.id}, {"name", d.name}, {"is_default", d.is_default}});
-      }
-      return ok(json{{"endpoint_id", sources::external_audio_configured_endpoint()}, {"devices", devices}});
-    }
-
-    if (m == "PUT" && p == "/api/external_audio/config") {
-      auto body = req.body.empty() ? json{} : json::parse(req.body);
-      const auto endpoint = body.value("endpoint_id", std::string{});
-      if (!sources::set_external_audio_configured_endpoint(endpoint)) {
-        return fail(500, "failed to save external_audio config");
-      }
-      if (auto* ext = find_typed<sources::ExternalAudioSource>("external_audio")) {
-        ext->reload_from_config();
-      }
-      return ok(json{{"endpoint_id", sources::external_audio_configured_endpoint()}});
-    }
-
             if (was_active) mgr.ring().drain();
             yt->play();
             mgr.switch_to("youtube_music");
