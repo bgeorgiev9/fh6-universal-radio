@@ -117,24 +117,23 @@ void run_bridge(HMODULE self) noexcept {
         if (c.youtube_music.enabled && !mgr.find("youtube_music")) {
             auto src = std::make_unique<sources::YouTubeMusicSource>(c.youtube_music,
                                                                      c.general.ffmpeg_path);
-
             if (src->initialize()) mgr.register_source(std::move(src));
         } else if (!c.youtube_music.enabled && mgr.find("youtube_music")) {
             mgr.unregister_source("youtube_music");
         }
-			if (c.jellyfin.enabled && !mgr.find("jellyfin")) {
-			  auto src = std::make_unique<sources::JellyfinSource>(c.jellyfin, c.general.ffmpeg_path);
-			  if (src->initialize()) mgr.register_source(std::move(src));
-			} else if (!c.jellyfin.enabled && mgr.find("jellyfin")) {
-			  mgr.unregister_source("jellyfin");
-			}
+        if (c.jellyfin.enabled && !mgr.find("jellyfin")) {
+            auto src = std::make_unique<sources::JellyfinSource>(c.jellyfin, c.general.ffmpeg_path);
+            if (src->initialize()) mgr.register_source(std::move(src));
+        } else if (!c.jellyfin.enabled && mgr.find("jellyfin")) {
+            mgr.unregister_source("jellyfin");
+        }
 
-            if (c.external_audio.enabled && !mgr.find("external_audio")) {
-                auto src = std::make_unique<sources::ExternalAudioSource>();
-                if (src->initialize()) mgr.register_source(std::move(src));
-            } else if (!c.external_audio.enabled && mgr.find("external_audio")) {
-                mgr.unregister_source("external_audio");
-            }
+        if (c.external_audio.enabled && !mgr.find("external_audio")) {
+            auto src = std::make_unique<sources::ExternalAudioSource>();
+            if (src->initialize()) mgr.register_source(std::move(src));
+        } else if (!c.external_audio.enabled && mgr.find("external_audio")) {
+            mgr.unregister_source("external_audio");
+        }
     };
 
     sync_sources(cfg);
