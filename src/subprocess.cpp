@@ -147,15 +147,12 @@ HANDLE spawn_in_job(HANDLE job, const std::wstring& cmd, HANDLE stdin_h, HANDLE 
             return nullptr;
         }
     }
-    if (job && !AssignProcessToJobObject(job, pi.hProcess)) {
-        // Preserve the AssignProcessToJobObject error across the cleanup calls so
-        // the caller's GetLastError() reflects the real cause, not CloseHandle's.
-        const DWORD assign_ec = GetLastError();
-        TerminateProcess(pi.hProcess, 1);
-        CloseHandle(pi.hThread);
-        CloseHandle(pi.hProcess);
-        SetLastError(assign_ec);
-        return nullptr;
+    if (job) {
+        // Best-effort: Job Objects are not fully implemented under Wine/Proton.
+        // If AssignProcessToJobObject fails (common under Wine), we continue
+        // without job containment rather than killing the child process.
+        // On native Windows this succeeds and gives us kill-on-close semantics.
+        AssignProcessToJobObject(job, pi.hProcess);
     }
     ResumeThread(pi.hThread);
     CloseHandle(pi.hThread);
